@@ -1,0 +1,23 @@
+use ast;
+
+grammar;
+
+pub Document: ast::Document =
+    <elements:Element*> => ast::Document { elements: elements };
+
+Element: Box<ast::Element> = {
+    Typ,
+};
+
+Typ: Box<ast::Element> =
+    "type" <name:TypId> "{" <fields:Field*> "}" =>
+        Box::new(ast::Element::Typ {
+            name: String::from(name),
+            fields: fields,
+        });
+
+Field: ast::Field =
+    <name:r"[a-z][A-Za-z0-9_]*"> ":" <typ:TypId> ";" =>
+        ast::Field { name: String::from(name), typ: String::from(typ) };
+
+TypId = r"[A-Z][A-Za-z0-9]*";
