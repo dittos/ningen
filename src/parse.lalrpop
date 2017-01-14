@@ -5,19 +5,45 @@ grammar;
 pub Document: ast::Document =
     <elements:Element*> => ast::Document { elements: elements };
 
-Element: Box<ast::Element> = {
-    Typ,
+Element: ast::Element = {
+    TypAlias,
+    Struct,
+    Enum,
 };
 
-Typ: Box<ast::Element> =
-    "type" <name:TypId> "{" <fields:Field*> "}" =>
-        Box::new(ast::Element::Typ {
+TypAlias: ast::Element =
+    "type" <name:CapsId> "=" <typ:Typ> ";" =>
+        ast::Element::TypAlias {
+            name: String::from(name),
+            typ: typ,
+        };
+
+Struct: ast::Element =
+    "struct" <name:CapsId> "{" <fields:Field*> "}" =>
+        ast::Element::Struct {
             name: String::from(name),
             fields: fields,
-        });
+        };
 
-Field: ast::Field =
-    <name:r"[a-z][A-Za-z0-9_]*"> ":" <typ:TypId> ";" =>
-        ast::Field { name: String::from(name), typ: String::from(typ) };
+Field: ast::Field = {
+    <name:FieldId> ":" <typ:Typ> ";" =>
+        ast::Field { name: String::from(name), typ: typ, optional: false },
+    <name:FieldId> "?" ":" <typ:Typ> ";" =>
+        ast::Field { name: String::from(name), typ: typ, optional: true },
+};
 
-TypId = r"[A-Z][A-Za-z0-9]*";
+Enum: ast::Element =
+    "enum" <name:CapsId> "{" <items:EnumItem+> "}" =>
+        ast::Element::Enum { name: String::from(name), items: items };
+
+EnumItem: String = <CapsId> ";" => String::from(<>);
+
+Typ: ast::Typ = {
+    CapsId => ast::Typ::Ref(String::from(<>)),
+    "[" <Typ> "]" => ast::Typ::List(Box::new(<>)),
+    "{" <key:CapsId> ":" <value:Typ> "}" =>
+        ast::Typ::Map(String::from(key), Box::new(value)),
+};
+
+CapsId = r"[A-Z][A-Za-z0-9_]*";
+FieldId = r"[a-z][A-Za-z0-9_]*";
